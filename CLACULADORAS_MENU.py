@@ -72,9 +72,35 @@ def calculadora2():
         case _:  
             print("Opción no válida")
             
-def calculadora3():  
-    # Aquí debo colocar el algoritmo del cálculo, pero es una prueba así que solo voy a imprimir algo  
-    print("Cálculo de viga en voladizo")  
+def calculadora3():
+    # Pedir la fuerza
+    fuerza = float(input("Ingresa la fuerza en N:  ",))
+    # Pedir la longitud
+    longitud = float(input("Ingresa la longtud en mts:  ",))
+    # Pedir el ancho
+    ancho = float(input("Ingresa el ancho en mm:  ",))
+    # Pedir el alto
+    alto = float (input("Ingresa el alto en mm:  ",))
+    # Pedir el modulo de elasticidad del material en Gigapascales 
+    ME = float (input("Ingresa el modulo de elascticidad en Gigapascales:  "))
+
+    #vamos a convertir el paso a metros 
+    ancho = ancho / 1000
+
+    # convertimos eficiencia en flotante 
+    alto = alto / 1000
+
+    #Calculmaos In
+    In = (ancho * alto ** 3) / 12
+
+    # calculamos la deformación
+    deformacion = (fuerza * longitud ** 3) / (3 * (ME ** (10**9)) * In)
+    deformacion_mm = deformacion * 1000
+
+    # Mostramos el resultado
+    print (f"La deformacion en mts: {deformacion: .2f}")
+    print (f"La deformcion en mm: {deformacion_mm: .2f}")
+
 
 def calculadora4():  
     # Aquí debo colocar el algoritmo del cálculo, pero es una prueba así que solo voy a imprimir algo  
