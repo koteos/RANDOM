@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulador de Flujo de Efectivo</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" type="text/css" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/bold/style.css"/>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+            color: #333;
+            max-width: 800px; /* Ancho máximo del contenido */
+            margin: auto; /* Centrar el contenido horizontalmente */
+        }
+
+        .container {
+            padding: 20px;
+            background-color: #fff;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        h1, h2 {
+            color: #1a5276;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        h2 {
+            font-size: 1.5em;
+            margin-top: 30px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+            background-color: #fff;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            border-radius: 5px;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        th {
+            background-color: #3498db;
+            color: white;
+        }
+
+        tr:hover {
+            background-color: #f0f0f0;
+        }
+
+        input[type="text"],
+        input[type="date"],
+        input[type="number"] {
+            width: 100%;
+            padding: 8px 10px;
+            margin: 5px 0;
+            display: inline-block;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+
+        button {
+            background-color: #2ecc71;
+            color: white;
+            padding: 10px 20px;
+            margin: 10px 0;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #218838;
+        }
+
+        #graficoFlujo {
+            width: 100%;
+            height: 400px;
+            margin-top: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background-color: #fff;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 10px;
+            }
+            table {
+                display: block;
+                overflow-x: auto;
+            }
+            input[type="text"],
+            input[type="date"],
+            input[type="number"] {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Simulador de Flujo de Efectivo</h1>
+
+        <h2>Facturas</h2>
+        <table id="facturasTable">
+            <thead>
+                <tr>
+                    <th>Cliente</th>
+                    <th>Fecha</th>
+                    <th>Monto</th>
+                    <th>Días Pago</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+            </tbody>
+        </table>
+        <button id="agregarFactura"><i class="ph-bold ph-plus"></i> Agregar Factura</button>
+
+        <h2>Gastos Fijos Mensuales</h2>
+        <label for="gastoFijo">Gasto Fijo Mensual:</label>
+        <input type="number" id="gastoFijo" value="170000">
+
+        <h2>Flujo de Caja</h2>
+        <table id="flujoCajaTable">
+            <thead>
+                <tr>
+                    <th>Mes</th>
+                    <th>Ingresos</th>
+                    <th>Egresos</th>
+                    <th>Flujo Neto</th>
+                    <th>Flujo Acumulado</th>
+                </tr>
+            </thead>
+            <tbody>
+            </tbody>
+        </table>
+
+        <canvas id="graficoFlujo"></canvas>
+    </div>
+
+    <script>
+        // Función para obtener datos de localStorage
+        function obtenerDatosLocalStorage(clave, valorPorDefecto) {
+            const datosGuardados = localStorage.getItem(clave);
+            if (datosGuardados) {
+                try {
+                    return JSON.parse(datosGuardados);
+                } catch (error) {
+                    console.error('Error al analizar JSON:', error);
+                    return valorPorDefecto;
+                }
+            } else {
+                return valorPorDefecto;
+            }
+        }
+
+        // Función para guardar datos en localStorage
+        function guardarDatosLocalStorage(clave, valor) {
+            localStorage.setItem(clave, JSON.stringify(valor));
+        }
+
+        // Inicializar datos desde localStorage o con valores por defecto
+        let facturas = obtenerDatosLocalStorage('facturas', [
+            { cliente: 'HEINEKEN', fecha: '2025-05-10', monto: 250000, diasPago: 30 },
+            { cliente: 'BIMBO', fecha: '2025-05-15', monto: 180000, diasPago: 45 },
+            { cliente: 'COPPEL', fecha: '2025-06-05', monto: 220000, diasPago: 60 },
+            { cliente: 'LACOMER', fecha: '2025-06-20', monto: 150000, diasPago: 30 },
+            { cliente: 'AUDI', fecha: '2025-07-01', monto: 300000, diasPago: 90 },
+        ]);
+
+        let gastoFijo = obtenerDatosLocalStorage('gastoFijo', 170000);
+        const meses = ['2025-05', '2025-06', '2025-07', '2025-08', '2025-09', '2025-10'];
+
+        const facturasTable = document.getElementById('facturasTable').querySelector('tbody');
+        const flujoCajaTable = document.getElementById('flujoCajaTable').querySelector('tbody');
+        const agregarFacturaBtn = document.getElementById('agregarFactura');
+        const gastoFijoInput = document.getElementById('gastoFijo');
+        const graficoFlujoCtx = document.getElementById('graficoFlujo').getContext('2d');
+
+        let graficoFlujo;
+
+        function calcularFlujoDeCaja() {
+            const ingresos = meses.map(mes => {
+                return facturas.reduce((acc, factura) => {
+                    const fechaPago = new Date(new Date(factura.fecha).getTime() + factura.diasPago * 86400000);
+                    const mesPago = fechaPago.toISOString().slice(0, 7);
+                    return mesPago === mes ? acc + factura.monto : acc;
+                }, 0);
+            });
+
+            const egresos = meses.map(() => gastoFijo);
+            const flujoNeto = ingresos.map((ingreso, index) => ingreso - egresos[index]);
+            const flujoAcumulado = flujoNeto.reduce((acc, valor, index) => {
+                acc.push((acc[index - 1] || 0) + valor);
+                return acc;
+            }, []);
+
+            return { ingresos, egresos, flujoNeto, flujoAcumulado };
+        }
+
+        function renderFacturasTable() {
+            facturasTable.innerHTML = '';
+            facturas.forEach((factura, index) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${factura.cliente}</td>
+                    <td>${factura.fecha}</td>
+                    <td>${factura.monto}</td>
+                    <td>${factura.diasPago}</td>
+                    <td>
+                        <button class="editar-btn" data-index="${index}"><i class="ph-bold ph-pencil"></i> Editar</button>
+                        <button class="eliminar-btn" data-index="${index}"><i class="ph-bold ph-trash"></i> Eliminar</button>
+                    </td>
+                `;
+                facturasTable.appendChild(row);
+            });
+
+            // Agregar listeners para botones de editar y eliminar
+            document.querySelectorAll('.editar-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const index = btn.dataset.index;
+                    editarFactura(index);
+                });
+            });
+
+            document.querySelectorAll('.eliminar-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const index = btn.dataset.index;
+                    eliminarFactura(index);
+                });
+            });
+            guardarDatosLocalStorage('facturas', facturas); // Guardar facturas en localStorage
+        }
+
+        function renderFlujoCajaTable() {
+            const { ingresos, egresos, flujoNeto, flujoAcumulado } = calcularFlujoDeCaja();
+            flujoCajaTable.innerHTML = '';
+            meses.forEach((mes, index) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${mes}</td>
+                    <td>${ingresos[index]}</td>
+                    <td>${egresos[index]}</td>
+                    <td>${flujoNeto[index]}</td>
+                    <td>${flujoAcumulado[index]}</td>
+                `;
+                flujoCajaTable.appendChild(row);
+            });
+            renderGraficoFlujo(meses, ingresos, egresos, flujoAcumulado);
+        }
+
+        function renderGraficoFlujo(meses, ingresos, egresos, flujoAcumulado) {
+            if (graficoFlujo) {
+                graficoFlujo.destroy();
+            }
+
+            graficoFlujo = new Chart(graficoFlujoCtx, {
+                type: 'line',
+                data: {
+                    labels: meses,
+                    datasets: [
+                        {
+                            label: 'Ingresos',
+                            data: ingresos,
+                            backgroundColor: 'rgba(0, 200, 83, 0.7)',
+                            borderColor: 'rgba(0, 200, 83, 1)',
+                            borderWidth: 2,
+                            fill: false,
+                            yAxisID: 'monto'
+                        },
+                        {
+                            label: 'Egresos',
+                            data: egresos,
+                            backgroundColor: 'rgba(244, 67, 54, 0.7)',
+                            borderColor: 'rgba(244, 67, 54, 1)',
+                            borderWidth: 2,
+                            fill: false,
+                            yAxisID: 'monto'
+                        },
+                        {
+                            label: 'Flujo Acumulado',
+                            data: flujoAcumulado,
+                            backgroundColor: 'rgba(33, 150, 243, 0.7)',
+                            borderColor: 'rgba(33, 150, 243, 1)',
+                            borderWidth: 2,
+                            fill: true,
+                            yAxisID: 'flujo'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Flujo de Caja Mensual',
+                            fontSize: 18
+                        },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false
+                        },
+                    },
+                    scales: {
+                        x: {
+                            display: true,
+                            title: {
+                                display: true,
+                                text: 'Mes'
+                            }
+                        },
+                        y: {
+                            id: 'monto',
+                            type: 'linear',
+                            position: 'left',
+                            display: true,
+                            title: {
+                                display: true,
+                                text: 'Monto'
+                            },
+                            beginAtZero: true
+                        },
+                        flujo: {
+                            id: 'flujo',
+                            type: 'linear',
+                            position: 'right',
+                            display: true,
+                            title: {
+                                display: true,
+                                text: 'Flujo Acumulado'
+                            },
+                            beginAtZero: true,
+                            grid: {
+                                drawOnChartArea: false
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function agregarFactura() {
+            const nuevaFactura = {
+                cliente: '',
+                fecha: '2025-05-01',
+                monto: 0,
+                diasPago: 30
+            };
+
+            facturas.push(nuevaFactura);
+            guardarDatosLocalStorage('facturas', facturas); // Guardar la nueva factura
+            renderFacturasTable();
+            renderFlujoCajaTable();
+        }
+
+        function editarFactura(index) {
+            const factura = facturas[index];
+            const row = document.querySelector(`[data-index="${index}"]`).closest('tr');
+
+            row.innerHTML = `
+                <td><input type="text" id="cliente-${index}" value="${factura.cliente}"></td>
+                <td><input type="date" id="fecha-${index}" value="${factura.fecha}"></td>
+                <td><input type="number" id="monto-${index}" value="${factura.monto}"></td>
+                <td><input type="number" id="diasPago-${index}" value="${factura.diasPago}"></td>
+                <td>
+                    <button class="guardar-btn" data-index="${index}"><i class="ph-bold ph-check"></i> Guardar</button>
+                    <button class="cancelar-btn" data-index="${index}"><i class="ph-bold ph-x"></i> Cancelar</button>
+                </td>
+            `;
+
+            const guardarBtn = row.querySelector('.guardar-btn');
+            const cancelarBtn = row.querySelector('.cancelar-btn');
+
+            guardarBtn.addEventListener('click', () => {
+                facturas[index] = {
+                    cliente: document.getElementById(`cliente-${index}`).value,
+                    fecha: document.getElementById(`fecha-${index}`).value,
+                    monto: parseFloat(document.getElementById(`monto-${index}`).value),
+                    diasPago: parseInt(document.getElementById(`diasPago-${index}`).value),
+                };
+                guardarDatosLocalStorage('facturas', facturas); // Guardar los cambios
+                renderFacturasTable();
+                renderFlujoCajaTable();
+            });
+
+            cancelarBtn.addEventListener('click', () => {
+                renderFacturasTable();
+            });
+        }
+
+        function eliminarFactura(index) {
+            facturas.splice(index, 1);
+            guardarDatosLocalStorage('facturas', facturas); // Guardar la eliminación
+            renderFacturasTable();
+            renderFlujoCajaTable();
+        }
+
+        agregarFacturaBtn.addEventListener('click', agregarFactura);
+        gastoFijoInput.addEventListener('change', () => {
+            gastoFijo = parseFloat(gastoFijoInput.value) || 0;
+            guardarDatosLocalStorage('gastoFijo', gastoFijo); // Guardar el gasto fijo
+            renderFlujoCajaTable();
+        });
+
+        // Cargar datos iniciales y renderizar
+        gastoFijoInput.value = gastoFijo;
+        renderFacturasTable();
+        renderFlujoCajaTable();
+    </script>
+</body>
+</html>

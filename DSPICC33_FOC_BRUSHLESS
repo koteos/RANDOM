@@ -1,0 +1,40 @@
+#include "xc.h"
+#include "motor_control_library.h"
+
+// Configuración de hardware específica del dsPIC33
+void setupHardware() {
+    // Configuración del ADC para medir corrientes
+    setupADC();
+
+    // Configuración del PWM para controlar el inversor
+    setupPWM();
+
+    // Configuración de interrupciones y temporizadores
+    setupInterrupts();
+}
+
+// Rutina principal
+int main() {
+    setupHardware();
+
+    while (1) {
+        // Medir corrientes del motor
+        measureCurrents();
+
+        // Realizar transformaciones de Clarke y Park
+        clarkeTransform();
+        parkTransform();
+
+        // Control PI para las corrientes d y q
+        controlPI();
+
+        // Realizar transformaciones inversas de Park y Clarke
+        inverseParkTransform();
+        inverseClarkeTransform();
+
+        // Actualizar señales PWM
+        updatePWM();
+    }
+
+    return 0;
+}
