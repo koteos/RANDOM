@@ -1,0 +1,36 @@
+@echo off
+:: === Verifica privilegios de administrador ===
+net session >nul 2>&1
+if %errorlevel% neq 0 (
+    powershell -Command "Start-Process '%~f0' -Verb runAs"
+    exit /b
+)
+
+:: === Desactivar sincronización automática ===
+echo Desactivando sincronización horaria...
+sc stop w32time >nul 2>&1
+sc config w32time start= disabled >nul 2>&1
+
+:: === Cambiar fecha a 1 enero 2022 ===
+echo Cambiando fecha a 2022-01-01...
+date 01-01-2022
+
+:: Pequeña espera para que el sistema asimile el cambio
+timeout /t 5 /nobreak >nul
+
+:: === Abrir CATIA ===
+echo Abriendo CATIA...
+start "" "C:\Dassault Systemes\B28\win_b64\code\bin\CATSTART.exe" -run "CNEXT.exe" -env CATIA_PLM_Express.V5-6R2018.B28 -direnv "C:\ProgramData\DassaultSystemes\CATEnv" -nowindow
+
+:: === Esperar 3 minutos ===
+echo Esperando 3 minutos antes de restaurar fecha...
+timeout /t 180 /nobreak >nul
+
+:: === Restaurar sincronización horaria y fecha actual ===
+echo Restaurando fecha y hora actual...
+sc config w32time start= auto >nul 2>&1
+sc start w32time >nul 2>&1
+w32tm /resync >nul 2>&1
+
+echo Proceso completado.
+pause
