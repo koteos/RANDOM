@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Infografía: Modelo de Negocio Kotemah e Integradores</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 450px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 350px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 350px;
+                max-height: 400px;
+            }
+        }
+        .flow-step {
+            position: relative;
+            padding-bottom: 2rem;
+        }
+        .flow-step:not(:last-child)::after {
+            content: '';
+            position: absolute;
+            left: 50%;
+            bottom: 0;
+            transform: translateX(-50%);
+            width: 2px;
+            height: 2rem;
+            background-color: #7a5195;
+        }
+        .flow-icon {
+            border: 2px solid #7a5195;
+        }
+    </style>
+</head>
+<body class="bg-[#003f5c] text-white">
+
+    <div class="container mx-auto p-4 md:p-8">
+
+        <header class="text-center my-12">
+            <h1 class="text-4xl md:text-6xl font-bold text-[#ffa600]">Una Alianza Estratégica</h1>
+            <p class="text-xl md:text-2xl mt-4 text-gray-200">El Modelo de Negocio de Kotemah y su Red de Integradores</p>
+        </header>
+
+        <section id="introduction" class="my-16">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
+                <div class="bg-white/10 rounded-lg p-6">
+                    <div class="text-6xl mb-4">🤖</div>
+                    <h3 class="text-2xl font-bold text-[#ffa600]">Kotemah</h3>
+                    <p class="mt-2 text-gray-300">El fabricante experto del brazo robótico, el núcleo de la solución.</p>
+                </div>
+                <div class="bg-white/10 rounded-lg p-6 flex flex-col justify-center items-center">
+                     <div class="text-6xl mb-4">🤝</div>
+                    <h3 class="text-2xl font-bold text-[#ffa600]">El Integrador</h3>
+                    <p class="mt-2 text-gray-300">El socio estratégico que diseña e implementa la solución completa a medida.</p>
+                </div>
+                <div class="bg-white/10 rounded-lg p-6">
+                    <div class="text-6xl mb-4">🎯</div>
+                    <h3 class="text-2xl font-bold text-[#ffa600]">El Cliente Final</h3>
+                    <p class="mt-2 text-gray-300">Recibe una solución "llave en mano" que optimiza su producción.</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="components" class="my-16 bg-white text-gray-800 rounded-lg shadow-2xl p-8">
+            <h2 class="text-3xl font-bold text-center mb-8 text-[#003f5c]">Los Componentes Clave del Éxito</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+                <div>
+                    <h3 class="text-2xl font-bold text-[#7a5195] mb-2">1. El Brazo Robótico Kotemah</h3>
+                    <p>Es la base de toda la operación. Fabricado con tecnología robusta y confiable, proporciona la fuerza y precisión necesarias. Kotemah se enfoca en perfeccionar este componente central.</p>
+                    <img src="https://storage.googleapis.com/gemini-prod/images/f3265320-7f9a-417d-886f-e3c30664e43b" alt="Brazo robótico Kotemah" class="mt-4 rounded-lg shadow-md w-full h-auto object-cover max-h-80" onerror="this.onerror=null;this.src='https://placehold.co/600x400/003f5c/ffa600?text=Brazo+Kotemah';">
+                </div>
+                <div>
+                    <h3 class="text-2xl font-bold text-[#7a5195] mb-2">2. El Gripper Personalizado</h3>
+                    <p>Diseñado y desarrollado por el integrador, esta es la herramienta que interactúa directamente con el producto del cliente. Su diseño a medida es crucial para el éxito del proyecto, y Kotemah ofrece "couch" (soporte) durante todo el proceso.</p>
+                    <img src="https://storage.googleapis.com/gemini-prod/images/d3782740-410c-4384-934c-d9c9e89d6778" alt="Gripper personalizado para un brazo robótico" class="mt-4 rounded-lg shadow-md w-full h-auto object-cover max-h-80" onerror="this.onerror=null;this.src='https://placehold.co/600x400/003f5c/ffa600?text=Gripper';">
+                </div>
+            </div>
+        </section>
+
+        <section id="workflow" class="my-24">
+            <h2 class="text-3xl font-bold text-center mb-12 text-[#ffa600]">Nuestro Flujo de Operación Colaborativo</h2>
+            <div class="flex flex-col items-center">
+                <div class="w-full max-w-2xl">
+                    <div class="flow-step text-center">
+                        <div class="mx-auto bg-[#7a5195] w-12 h-12 rounded-full flex items-center justify-center text-xl font-bold flow-icon">1</div>
+                        <h3 class="text-xl font-semibold mt-4">Generación del Lead</h3>
+                        <p class="text-gray-300">Kotemah consigue y califica la oportunidad, luego la asigna al integrador ideal.</p>
+                    </div>
+                    <div class="flow-step text-center">
+                        <div class="mx-auto bg-[#7a5195] w-12 h-12 rounded-full flex items-center justify-center text-xl font-bold flow-icon">2</div>
+                        <h3 class="text-xl font-semibold mt-4">Cotización y Comunicación</h3>
+                        <p class="text-gray-300">Kotemah cotiza el brazo, manteniendo al integrador informado en todo momento.</p>
+                    </div>
+                     <div class="flow-step text-center">
+                        <div class="mx-auto bg-[#bc5090] w-12 h-12 rounded-full flex items-center justify-center text-xl font-bold flow-icon">3</div>
+                        <h3 class="text-xl font-semibold mt-4">Seguimiento del Integrador</h3>
+                        <p class="text-gray-300">El integrador lidera la negociación con el cliente para obtener la orden de compra.</p>
+                    </div>
+                    <div class="flow-step text-center">
+                        <div class="mx-auto bg-[#bc5090] w-12 h-12 rounded-full flex items-center justify-center text-xl font-bold flow-icon">4</div>
+                        <h3 class="text-xl font-semibold mt-4">Facturación y Anticipo</h3>
+                        <p class="text-gray-300">El integrador factura al cliente y paga el 50% del brazo a Kotemah para iniciar la producción.</p>
+                    </div>
+                    <div class="flow-step text-center">
+                        <div class="mx-auto bg-[#ef5675] w-12 h-12 rounded-full flex items-center justify-center text-xl font-bold flow-icon">5</div>
+                        <h3 class="text-xl font-semibold mt-4">Fabricación y Desarrollo</h3>
+                        <p class="text-gray-300">Kotemah fabrica el brazo mientras el integrador desarrolla el gripper con el soporte de Kotemah.</p>
+                    </div>
+                    <div class="flow-step text-center">
+                        <div class="mx-auto bg-[#ff764a] w-12 h-12 rounded-full flex items-center justify-center text-xl font-bold flow-icon">6</div>
+                        <h3 class="text-xl font-semibold mt-4">Entrega y Pago Final</h3>
+                        <p class="text-gray-300">Kotemah entrega el brazo al integrador y recibe el 50% restante de su pago.</p>
+                    </div>
+                    <div class="flow-step text-center">
+                        <div class="mx-auto bg-[#ffa600] w-12 h-12 rounded-full flex items-center justify-center text-xl font-bold flow-icon">7</div>
+                        <h3 class="text-xl font-semibold mt-4">Instalación y Cierre</h3>
+                        <p class="text-gray-300">El integrador instala, pone en marcha, capacita y cierra el proyecto, facturando los montos restantes al cliente.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="value" class="my-16 bg-white text-gray-800 rounded-lg shadow-2xl p-8">
+            <h2 class="text-3xl font-bold text-center mb-8 text-[#003f5c]">Valor y Beneficios para Todos</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+                <div>
+                    <h3 class="text-2xl font-bold text-[#7a5195] mb-4 text-center">Flujo de Pago a Kotemah</h3>
+                    <p class="text-center mb-4">El modelo asegura el flujo de caja para la producción con un pago inicial del 50%, y el resto contra entrega al integrador.</p>
+                    <div class="chart-container">
+                        <canvas id="paymentChart"></canvas>
+                    </div>
+                </div>
+                <div>
+                    <h3 class="text-2xl font-bold text-[#7a5195] mb-4 text-center">Beneficios Clave por Actor</h3>
+                     <p class="text-center mb-4">Cada participante obtiene ventajas significativas, creando una relación ganar-ganar-ganar que fortalece el ecosistema.</p>
+                    <div class="chart-container">
+                        <canvas id="benefitsChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <footer class="text-center my-12 border-t-2 border-[#ffa600] pt-8">
+            <h2 class="text-3xl font-bold text-[#ffa600]">¿Interesado en ser un Integrador Kotemah?</h2>
+            <p class="mt-4 text-lg text-gray-200">Únete a nuestra red y sé parte de la revolución en automatización industrial.</p>
+            <a href="#" class="mt-6 inline-block bg-[#ffa600] text-[#003f5c] font-bold py-3 px-8 rounded-lg hover:bg-opacity-90 transition-colors">Contáctanos</a>
+        </footer>
+
+    </div>
+
+    <script>
+        const wrapLabel = (label, maxWidth) => {
+            const words = label.split(' ');
+            const lines = [];
+            let currentLine = '';
+            words.forEach(word => {
+                const testLine = currentLine.length > 0 ? `${currentLine} ${word}` : word;
+                if (testLine.length > maxWidth) {
+                    lines.push(currentLine);
+                    currentLine = word;
+                } else {
+                    currentLine = testLine;
+                }
+            });
+            lines.push(currentLine);
+            return lines;
+        };
+
+        const tooltipTitleCallback = (tooltipItems) => {
+            const item = tooltipItems[0];
+            let label = item.chart.data.labels[item.dataIndex];
+            if (Array.isArray(label)) {
+                return label.join(' ');
+            }
+            return label;
+        };
+        
+        const paymentChartCtx = document.getElementById('paymentChart').getContext('2d');
+        const paymentChart = new Chart(paymentChartCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Anticipo (50%)', 'Pago Final (50%)'],
+                datasets: [{
+                    label: 'Flujo de Pago a Kotemah',
+                    data: [50, 50],
+                    backgroundColor: ['#7a5195', '#ff764a'],
+                    borderColor: '#ffffff',
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                        labels: {
+                            color: '#003f5c'
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                           title: tooltipTitleCallback
+                        }
+                    }
+                }
+            }
+        });
+
+        const benefitsChartCtx = document.getElementById('benefitsChart').getContext('2d');
+        const benefitsChart = new Chart(benefitsChartCtx, {
+            type: 'bar',
+            data: {
+                labels: ['Cliente Final', 'Integrador', 'Kotemah'],
+                datasets: [{
+                    label: 'Beneficios Clave',
+                    data: [3, 4, 3],
+                    backgroundColor: ['#ef5675', '#ffa600', '#7a5195'],
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                indexAxis: 'y',
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        ticks: {
+                            color: '#003f5c',
+                            stepSize: 1
+                        },
+                        grid: {
+                            color: '#dddddd'
+                        }
+                    },
+                    y: {
+                        ticks: {
+                            color: '#003f5c'
+                        },
+                        grid: {
+                            display: false
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        callbacks: {
+                            title: tooltipTitleCallback
+                        }
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>
