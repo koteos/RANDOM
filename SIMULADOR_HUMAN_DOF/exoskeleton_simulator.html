@@ -1,0 +1,1222 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kotemah — Simulador 3D Exoesqueleto</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+:root {
+  --bg:#080b10; --surface:#0f1319; --surface2:#161c26;
+  --border:#1e2535; --accent:#c8f000; --accent2:#a0c800;
+  --text:#e0e8f0; --dim:#5a6880; --red:#ff4060; --blue:#40a0ff;
+  --orange:#ff8c00; --green:#00e080;
+}
+body { font-family:'IBM Plex Sans',sans-serif; background:var(--bg); color:var(--text); overflow:hidden; height:100vh; display:flex; flex-direction:column; }
+
+/* HEADER */
+header {
+  height:48px; background:var(--surface); border-bottom:2px solid var(--accent);
+  display:flex; align-items:center; padding:0 16px; gap:14px; z-index:10; flex-shrink:0;
+}
+.logo-badge {
+  background:#fff; border-radius:4px; padding:3px 8px; height:34px; display:flex; align-items:center;
+}
+.logo-badge img { height:28px; object-fit:contain; }
+.header-title { font-family:'Bebas Neue'; font-size:1.1rem; letter-spacing:3px; color:var(--text); }
+.header-title span { color:var(--accent); }
+.header-sep { width:1px; height:24px; background:var(--border); }
+.header-info { font-family:'IBM Plex Mono'; font-size:0.65rem; color:var(--dim); letter-spacing:1px; }
+.header-right { margin-left:auto; display:flex; gap:8px; align-items:center; }
+.hbtn { background:var(--surface2); border:1px solid var(--border); color:var(--dim); padding:5px 12px; font-size:0.7rem; font-family:'IBM Plex Mono'; cursor:pointer; transition:.15s; letter-spacing:1px; }
+.hbtn:hover { border-color:var(--accent); color:var(--accent); }
+.hbtn.active { border-color:var(--accent); color:var(--accent); background:rgba(200,240,0,0.08); }
+
+/* LAYOUT */
+.workspace { display:flex; flex:1; overflow:hidden; }
+
+/* LEFT PANEL */
+.left-panel {
+  width:200px; background:var(--surface); border-right:1px solid var(--border);
+  display:flex; flex-direction:column; flex-shrink:0; overflow-y:auto;
+}
+.panel-section { border-bottom:1px solid var(--border); }
+.panel-title {
+  font-family:'IBM Plex Mono'; font-size:0.6rem; color:var(--accent); letter-spacing:2px;
+  padding:8px 12px 6px; text-transform:uppercase;
+}
+.joint-btn {
+  display:flex; align-items:center; gap:8px; padding:7px 12px; cursor:pointer;
+  transition:.15s; border:none; background:none; color:var(--dim); width:100%; text-align:left;
+  font-family:'IBM Plex Sans'; font-size:0.75rem;
+}
+.joint-btn:hover { background:var(--surface2); color:var(--text); }
+.joint-btn.selected { background:rgba(200,240,0,0.08); color:var(--accent); border-left:2px solid var(--accent); }
+.joint-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+.joint-name { flex:1; }
+.joint-dof { font-family:'IBM Plex Mono'; font-size:0.6rem; color:var(--dim); }
+.joint-btn.selected .joint-dof { color:var(--accent); opacity:0.7; }
+
+/* 3D CANVAS */
+#canvas-wrap { flex:1; position:relative; cursor:crosshair; }
+canvas { display:block; }
+.canvas-overlay {
+  position:absolute; top:0; left:0; right:0; bottom:0; pointer-events:none;
+}
+.crosshair-label {
+  position:absolute; font-family:'IBM Plex Mono'; font-size:0.65rem; color:var(--accent);
+  background:rgba(8,11,16,0.85); border:1px solid var(--accent); padding:3px 8px;
+  pointer-events:none; white-space:nowrap; display:none;
+}
+.controls-hint {
+  position:absolute; bottom:12px; left:12px; font-family:'IBM Plex Mono'; font-size:0.6rem;
+  color:var(--dim); line-height:1.8;
+}
+.axis-legend {
+  position:absolute; bottom:12px; right:12px; font-family:'IBM Plex Mono'; font-size:0.65rem;
+  color:var(--dim); text-align:right; line-height:1.8;
+}
+
+/* RIGHT PANEL */
+.right-panel {
+  width:280px; background:var(--surface); border-left:1px solid var(--border);
+  display:flex; flex-direction:column; flex-shrink:0; overflow-y:auto;
+}
+.rp-header {
+  padding:12px 14px; border-bottom:1px solid var(--border);
+}
+.rp-joint-name {
+  font-family:'Bebas Neue'; font-size:1.4rem; letter-spacing:2px; color:var(--accent);
+}
+.rp-joint-sub { font-family:'IBM Plex Mono'; font-size:0.65rem; color:var(--dim); margin-top:2px; }
+.rp-section { padding:10px 14px; border-bottom:1px solid var(--border); }
+.rp-label { font-family:'IBM Plex Mono'; font-size:0.6rem; color:var(--dim); letter-spacing:2px; text-transform:uppercase; margin-bottom:8px; }
+
+/* ROM bars */
+.rom-item { margin-bottom:10px; }
+.rom-top { display:flex; justify-content:space-between; margin-bottom:4px; }
+.rom-axis { font-family:'IBM Plex Mono'; font-size:0.7rem; color:var(--text); }
+.rom-range { font-family:'IBM Plex Mono'; font-size:0.65rem; color:var(--dim); }
+.rom-bar-wrap { height:6px; background:var(--border); border-radius:3px; position:relative; overflow:visible; }
+.rom-bar { height:100%; border-radius:3px; transition:.3s; }
+.rom-zero { position:absolute; top:-3px; height:12px; width:2px; background:var(--dim); opacity:.5; }
+.rom-current { position:absolute; top:-4px; width:10px; height:14px; background:var(--accent); border-radius:2px; transform:translateX(-50%); transition:.2s; }
+
+/* Angle slider */
+.angle-control { margin-bottom:10px; }
+.angle-top { display:flex; justify-content:space-between; align-items:center; margin-bottom:5px; }
+.angle-name { font-family:'IBM Plex Mono'; font-size:0.72rem; color:var(--text); }
+.angle-val { font-family:'IBM Plex Mono'; font-size:0.8rem; color:var(--accent); font-weight:600; min-width:50px; text-align:right; }
+.angle-slider {
+  width:100%; -webkit-appearance:none; appearance:none; height:4px;
+  background:var(--border); border-radius:2px; outline:none; cursor:pointer;
+}
+.angle-slider::-webkit-slider-thumb {
+  -webkit-appearance:none; width:14px; height:14px; border-radius:50%;
+  background:var(--accent); cursor:pointer; border:2px solid var(--bg);
+}
+.angle-slider::-moz-range-thumb {
+  width:14px; height:14px; border-radius:50%;
+  background:var(--accent); cursor:pointer; border:2px solid var(--bg);
+}
+
+/* Info tags */
+.info-grid { display:grid; grid-template-columns:1fr 1fr; gap:6px; }
+.info-cell { background:var(--surface2); border:1px solid var(--border); padding:7px 9px; }
+.info-cell-label { font-family:'IBM Plex Mono'; font-size:0.58rem; color:var(--dim); letter-spacing:1px; }
+.info-cell-val { font-family:'IBM Plex Mono'; font-size:0.8rem; color:var(--text); font-weight:600; margin-top:2px; }
+
+/* Animate button */
+.anim-btn {
+  width:100%; padding:10px; background:var(--accent); color:#000;
+  border:none; font-family:'Bebas Neue'; font-size:1rem; letter-spacing:3px;
+  cursor:pointer; transition:.15s; margin-bottom:6px;
+}
+.anim-btn:hover { background:var(--accent2); }
+.anim-btn.playing { background:var(--red); color:#fff; }
+.reset-btn {
+  width:100%; padding:7px; background:none; border:1px solid var(--border);
+  color:var(--dim); font-family:'IBM Plex Mono'; font-size:0.7rem; cursor:pointer; transition:.15s;
+}
+.reset-btn:hover { border-color:var(--dim); color:var(--text); }
+
+/* Placeholder when nothing selected */
+.no-select {
+  flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center;
+  padding:20px; text-align:center; color:var(--dim);
+}
+.no-select-icon { font-size:2.5rem; margin-bottom:12px; opacity:.4; }
+.no-select-text { font-family:'IBM Plex Mono'; font-size:0.7rem; line-height:1.7; }
+
+/* Tooltip */
+#tooltip {
+  position:fixed; background:rgba(8,11,16,0.95); border:1px solid var(--accent);
+  color:var(--accent); font-family:'IBM Plex Mono'; font-size:0.65rem;
+  padding:5px 10px; pointer-events:none; display:none; z-index:100; letter-spacing:1px;
+}
+
+/* scrollbar */
+::-webkit-scrollbar { width:4px; }
+::-webkit-scrollbar-track { background:var(--bg); }
+::-webkit-scrollbar-thumb { background:var(--border); border-radius:2px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo-badge">
+    <svg width="90" height="28" viewBox="0 0 200 60" xmlns="http://www.w3.org/2000/svg">
+      <!-- K shape in yellow -->
+      <polygon points="8,4 28,4 28,24 48,4 72,4 44,32 72,58 48,58 28,38 28,58 8,58" fill="#c8f000"/>
+      <!-- White gap diagonal -->
+      <polygon points="28,24 48,4 52,4 32,26" fill="#fff"/>
+      <!-- KOTEMAH text -->
+      <text x="82" y="38" font-family="Arial Black,sans-serif" font-size="26" font-weight="900" fill="#111">KOTEMAH</text>
+      <text x="83" y="54" font-family="Arial,sans-serif" font-size="12" fill="#444">Robotics Lift Assists</text>
+    </svg>
+  </div>
+  <div class="header-sep"></div>
+  <div class="header-title">SIMULADOR <span>3D</span> EXOESQUELETO</div>
+  <div class="header-sep"></div>
+  <div class="header-info">ANÁLISIS BIOMECÁNICO · RANGO DE MOVIMIENTO</div>
+  <div class="header-right">
+    <button class="hbtn active" id="btn-wireframe" onclick="toggleWireframe()">WIREFRAME</button>
+    <button class="hbtn" id="btn-solid" onclick="toggleSolid()">SÓLIDO</button>
+    <button class="hbtn" onclick="resetCamera()">RESET CAM</button>
+    <button class="hbtn" id="btn-reset-all" onclick="resetAllJoints()" style="border-color:#ff4060;color:#ff4060;">↺ RESET ALL</button>
+  </div>
+</header>
+
+<div class="workspace">
+  <!-- LEFT: Joint list -->
+  <div class="left-panel">
+    <div class="panel-section">
+      <div class="panel-title">▸ Tren Superior</div>
+      <button class="joint-btn" onclick="selectJoint('shoulder_r')" id="jbtn-shoulder_r">
+        <div class="joint-dot" style="background:#ff6040"></div>
+        <span class="joint-name">Hombro Der.</span><span class="joint-dof">3 DOF</span>
+      </button>
+      <button class="joint-btn" onclick="selectJoint('elbow_r')" id="jbtn-elbow_r">
+        <div class="joint-dot" style="background:#ff8c40"></div>
+        <span class="joint-name">Codo Der.</span><span class="joint-dof">2 DOF</span>
+      </button>
+      <button class="joint-btn" onclick="selectJoint('wrist_r')" id="jbtn-wrist_r">
+        <div class="joint-dot" style="background:#ffb040"></div>
+        <span class="joint-name">Muñeca Der.</span><span class="joint-dof">2 DOF</span>
+      </button>
+      <button class="joint-btn" onclick="selectJoint('shoulder_l')" id="jbtn-shoulder_l">
+        <div class="joint-dot" style="background:#4080ff"></div>
+        <span class="joint-name">Hombro Izq.</span><span class="joint-dof">3 DOF</span>
+      </button>
+      <button class="joint-btn" onclick="selectJoint('elbow_l')" id="jbtn-elbow_l">
+        <div class="joint-dot" style="background:#40b0ff"></div>
+        <span class="joint-name">Codo Izq.</span><span class="joint-dof">2 DOF</span>
+      </button>
+      <button class="joint-btn" onclick="selectJoint('wrist_l')" id="jbtn-wrist_l">
+        <div class="joint-dot" style="background:#40d0ff"></div>
+        <span class="joint-name">Muñeca Izq.</span><span class="joint-dof">2 DOF</span>
+      </button>
+    </div>
+    <div class="panel-section">
+      <div class="panel-title">▸ Tronco</div>
+      <button class="joint-btn" onclick="selectJoint('spine_t')" id="jbtn-spine_t">
+        <div class="joint-dot" style="background:#c8f000"></div>
+        <span class="joint-name">Col. Torácica</span><span class="joint-dof">3 DOF</span>
+      </button>
+      <button class="joint-btn" onclick="selectJoint('spine_l')" id="jbtn-spine_l">
+        <div class="joint-dot" style="background:#80c000"></div>
+        <span class="joint-name">Col. Lumbar</span><span class="joint-dof">3 DOF</span>
+      </button>
+    </div>
+    <div class="panel-section">
+      <div class="panel-title">▸ Tren Inferior</div>
+      <button class="joint-btn" onclick="selectJoint('hip_r')" id="jbtn-hip_r">
+        <div class="joint-dot" style="background:#e040c0"></div>
+        <span class="joint-name">Cadera Der.</span><span class="joint-dof">3 DOF</span>
+      </button>
+      <button class="joint-btn" onclick="selectJoint('knee_r')" id="jbtn-knee_r">
+        <div class="joint-dot" style="background:#c040e0"></div>
+        <span class="joint-name">Rodilla Der.</span><span class="joint-dof">1 DOF</span>
+      </button>
+      <button class="joint-btn" onclick="selectJoint('ankle_r')" id="jbtn-ankle_r">
+        <div class="joint-dot" style="background:#a040ff"></div>
+        <span class="joint-name">Tobillo Der.</span><span class="joint-dof">2 DOF</span>
+      </button>
+      <button class="joint-btn" onclick="selectJoint('hip_l')" id="jbtn-hip_l">
+        <div class="joint-dot" style="background:#e040c0"></div>
+        <span class="joint-name">Cadera Izq.</span><span class="joint-dof">3 DOF</span>
+      </button>
+      <button class="joint-btn" onclick="selectJoint('knee_l')" id="jbtn-knee_l">
+        <div class="joint-dot" style="background:#c040e0"></div>
+        <span class="joint-name">Rodilla Izq.</span><span class="joint-dof">1 DOF</span>
+      </button>
+      <button class="joint-btn" onclick="selectJoint('ankle_l')" id="jbtn-ankle_l">
+        <div class="joint-dot" style="background:#a040ff"></div>
+        <span class="joint-name">Tobillo Izq.</span><span class="joint-dof">2 DOF</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- CENTER: 3D Canvas -->
+  <div id="canvas-wrap">
+    <div class="controls-hint">
+      🖱 Arrastrar: rotar · Scroll: zoom · Clic en articulación: analizar
+    </div>
+    <div class="axis-legend">
+      <span style="color:#ff4040">■</span> X  
+      <span style="color:#40ff40">■</span> Y  
+      <span style="color:#4040ff">■</span> Z
+    </div>
+  </div>
+
+  <!-- RIGHT: Analysis panel -->
+  <div class="right-panel" id="right-panel">
+    <div class="no-select" id="no-select-msg">
+      <div class="no-select-icon">🦾</div>
+      <div class="no-select-text">Haz clic en una<br>articulación del modelo<br>o selecciona del menú<br>para analizar su<br>movimiento y ROM</div>
+    </div>
+    <div id="analysis-content" style="display:none; flex-direction:column">
+      <div class="rp-header">
+        <div class="rp-joint-name" id="rp-name">CODO</div>
+        <div class="rp-joint-sub" id="rp-sub">Articulación gínglimo · 2 DOF</div>
+      </div>
+
+      <div class="rp-section">
+        <div class="rp-label">Rango de Movimiento (ROM)</div>
+        <div id="rom-container"></div>
+      </div>
+
+      <div class="rp-section">
+        <div class="rp-label">Control de Ángulos</div>
+        <div id="angle-controls"></div>
+      </div>
+
+      <div class="rp-section">
+        <div class="rp-label">Propiedades Mecánicas</div>
+        <div class="info-grid" id="mech-props"></div>
+      </div>
+
+      <div class="rp-section">
+        <button class="anim-btn" id="anim-btn" onclick="toggleAnimation()">▶ ANIMAR ROM</button>
+        <button class="reset-btn" onclick="resetJointAngles()">RESET POSICIÓN</button>
+      </div>
+
+      <div class="rp-section">
+        <div class="rp-label">Notas de Diseño</div>
+        <div id="design-notes" style="font-family:'IBM Plex Sans';font-size:0.72rem;color:var(--dim);line-height:1.7;"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="tooltip"></div>
+
+<script>
+// ============================================================
+// JOINT DATABASE — biomechanical data per joint
+// ============================================================
+const JOINTS = {
+  elbow_r: {
+    name: 'CODO DERECHO', sub: 'Articulación gínglimo · 2 DOF',
+    color: 0xff8c40, position: { x: 1.8, y: 4.2 },
+    dof: [
+      { axis: 'Flexión / Extensión', min: 0, max: 145, default: 80, color: '#ff8c40', unit: '°', key: 'flex' },
+      { axis: 'Pronación / Supinación', min: -90, max: 90, default: 0, color: '#ffb870', unit: '°', key: 'pron' }
+    ],
+    mechProps: [
+      { label: 'TIPO', val: 'Gínglimo' }, { label: 'DOF', val: '2' },
+      { label: 'EJE PRIM.', val: 'Transversal' }, { label: 'MÚSCULO', val: 'Bíceps/Tríceps' },
+      { label: 'PAR MÁX.', val: '~40 N·m' }, { label: 'VEL. MÁX.', val: '~300°/s' }
+    ],
+    notes: '⚙ El codo combina flexo-extensión (húmero-cúbito) con pronación-supinación (radio). Para el exoesqueleto, el eje de flexión debe estar alineado con el epicóndilo lateral. Una desalineación de >5mm genera fuerzas parasitarias. Considera actuador lineal para flexión y rotación concéntrica para pro/supinación.',
+    segment: 'arm_r'
+  },
+  elbow_l: {
+    name: 'CODO IZQUIERDO', sub: 'Articulación gínglimo · 2 DOF',
+    color: 0x40b0ff, position: { x: -1.8, y: 4.2 },
+    dof: [
+      { axis: 'Flexión / Extensión', min: 0, max: 145, default: 80, color: '#40b0ff', unit: '°', key: 'flex' },
+      { axis: 'Pronación / Supinación', min: -90, max: 90, default: 0, color: '#80d0ff', unit: '°', key: 'pron' }
+    ],
+    mechProps: [
+      { label: 'TIPO', val: 'Gínglimo' }, { label: 'DOF', val: '2' },
+      { label: 'EJE PRIM.', val: 'Transversal' }, { label: 'MÚSCULO', val: 'Bíceps/Tríceps' },
+      { label: 'PAR MÁX.', val: '~40 N·m' }, { label: 'VEL. MÁX.', val: '~300°/s' }
+    ],
+    notes: '⚙ Mismas características biomecánicas que codo derecho. En el exoesqueleto bilateral, sincronizar ambos ejes o permitir operación independiente según la tarea.',
+    segment: 'arm_l'
+  },
+  shoulder_r: {
+    name: 'HOMBRO DERECHO', sub: 'Articulación enartrosis · 3 DOF',
+    color: 0xff6040, position: { x: 1.5, y: 5.8 },
+    dof: [
+      { axis: 'Flexión / Extensión', min: -60, max: 180, default: 30, color: '#ff6040', unit: '°', key: 'flex' },
+      { axis: 'Abducción / Aducción', min: -30, max: 180, default: 0, color: '#ff9060', unit: '°', key: 'abd' },
+      { axis: 'Rotación Int. / Ext.', min: -90, max: 90, default: 0, color: '#ffb080', unit: '°', key: 'rot' }
+    ],
+    mechProps: [
+      { label: 'TIPO', val: 'Enartrosis' }, { label: 'DOF', val: '3' },
+      { label: 'ESTAB.', val: 'Ligamentos' }, { label: 'MÚSCULO', val: 'Deltoides/Manguito' },
+      { label: 'PAR MÁX.', val: '~80 N·m' }, { label: 'VEL. MÁX.', val: '~200°/s' }
+    ],
+    notes: '⚙ El hombro es la articulación más móvil del cuerpo. El exoesqueleto debe replicar el ritmo escápulo-humeral (2:1 abducción). Crítico: el centro instantáneo de rotación migra durante la elevación. Usar mecanismo paralelo o cable diferencial para los 3 DOF.',
+    segment: 'arm_r'
+  },
+  shoulder_l: {
+    name: 'HOMBRO IZQUIERDO', sub: 'Articulación enartrosis · 3 DOF',
+    color: 0x4080ff, position: { x: -1.5, y: 5.8 },
+    dof: [
+      { axis: 'Flexión / Extensión', min: -60, max: 180, default: 30, color: '#4080ff', unit: '°', key: 'flex' },
+      { axis: 'Abducción / Aducción', min: -30, max: 180, default: 0, color: '#6090ff', unit: '°', key: 'abd' },
+      { axis: 'Rotación Int. / Ext.', min: -90, max: 90, default: 0, color: '#80a0ff', unit: '°', key: 'rot' }
+    ],
+    mechProps: [
+      { label: 'TIPO', val: 'Enartrosis' }, { label: 'DOF', val: '3' },
+      { label: 'ESTAB.', val: 'Ligamentos' }, { label: 'MÚSCULO', val: 'Deltoides/Manguito' },
+      { label: 'PAR MÁX.', val: '~80 N·m' }, { label: 'VEL. MÁX.', val: '~200°/s' }
+    ],
+    notes: '⚙ Mismas características que hombro derecho. En tareas de elevación asistida (Kotemah), el hombro izquierdo frecuentemente carga durante alcances laterales.',
+    segment: 'arm_l'
+  },
+  wrist_r: {
+    name: 'MUÑECA DERECHA', sub: 'Articulación condílea · 2 DOF',
+    color: 0xffb040, position: { x: 1.8, y: 2.8 },
+    dof: [
+      { axis: 'Flexión / Extensión', min: -80, max: 80, default: 0, color: '#ffb040', unit: '°', key: 'flex' },
+      { axis: 'Desviación Rad/Cub.', min: -30, max: 20, default: 0, color: '#ffd080', unit: '°', key: 'dev' }
+    ],
+    mechProps: [
+      { label: 'TIPO', val: 'Condílea' }, { label: 'DOF', val: '2' },
+      { label: 'EJE PRIM.', val: 'Sagital' }, { label: 'MÚSCULO', val: 'Flexores/Extensores' },
+      { label: 'PAR MÁX.', val: '~10 N·m' }, { label: 'VEL. MÁX.', val: '~150°/s' }
+    ],
+    notes: '⚙ La muñeca trabaja en combinación con el antebrazo. Para Kotemah, la desviación cubital-radial es importante en tareas de agarre. Considera muñeca pasiva con resorte de retorno para reducir peso distal.',
+    segment: 'forearm_r'
+  },
+  wrist_l: {
+    name: 'MUÑECA IZQUIERDA', sub: 'Articulación condílea · 2 DOF',
+    color: 0x40d0ff, position: { x: -1.8, y: 2.8 },
+    dof: [
+      { axis: 'Flexión / Extensión', min: -80, max: 80, default: 0, color: '#40d0ff', unit: '°', key: 'flex' },
+      { axis: 'Desviación Rad/Cub.', min: -30, max: 20, default: 0, color: '#80e0ff', unit: '°', key: 'dev' }
+    ],
+    mechProps: [
+      { label: 'TIPO', val: 'Condílea' }, { label: 'DOF', val: '2' },
+      { label: 'EJE PRIM.', val: 'Sagital' }, { label: 'MÚSCULO', val: 'Flexores/Extensores' },
+      { label: 'PAR MÁX.', val: '~10 N·m' }, { label: 'VEL. MÁX.', val: '~150°/s' }
+    ],
+    notes: '⚙ Muñeca izquierda: mismas propiedades que derecha.',
+    segment: 'forearm_l'
+  },
+  spine_t: {
+    name: 'COL. TORÁCICA', sub: 'Articulación intervertebral · 3 DOF',
+    color: 0xc8f000, position: { x: 0, y: 5.5 },
+    dof: [
+      { axis: 'Flexión / Extensión', min: -30, max: 30, default: 0, color: '#c8f000', unit: '°', key: 'flex' },
+      { axis: 'Flexión Lateral', min: -25, max: 25, default: 0, color: '#a0c800', unit: '°', key: 'lat' },
+      { axis: 'Rotación Axial', min: -35, max: 35, default: 0, color: '#80a000', unit: '°', key: 'rot' }
+    ],
+    mechProps: [
+      { label: 'TIPO', val: 'Intervert.' }, { label: 'DOF', val: '3' },
+      { label: 'VÉRT.', val: 'T1–T12' }, { label: 'MÚSCULO', val: 'Paravertebrales' },
+      { label: 'PAR MÁX.', val: '~120 N·m' }, { label: 'ROM TOTAL', val: '~60°' }
+    ],
+    notes: '⚙ La columna torácica tiene movilidad limitada por las costillas. En el exoesqueleto, el frame dorsal debe seguir la curva cifótica natural (~40°). Punto crítico para transmisión de cargas al pelvis.',
+    segment: 'torso'
+  },
+  spine_l: {
+    name: 'COL. LUMBAR', sub: 'Articulación intervertebral · 3 DOF',
+    color: 0x80c000, position: { x: 0, y: 4.2 },
+    dof: [
+      { axis: 'Flexión / Extensión', min: -20, max: 60, default: 0, color: '#80c000', unit: '°', key: 'flex' },
+      { axis: 'Flexión Lateral', min: -30, max: 30, default: 0, color: '#60a000', unit: '°', key: 'lat' },
+      { axis: 'Rotación Axial', min: -10, max: 10, default: 0, color: '#408000', unit: '°', key: 'rot' }
+    ],
+    mechProps: [
+      { label: 'TIPO', val: 'Intervert.' }, { label: 'DOF', val: '3' },
+      { label: 'VÉRT.', val: 'L1–L5' }, { label: 'MÚSCULO', val: 'Erector spinae' },
+      { label: 'PAR MÁX.', val: '~200 N·m' }, { label: 'CARGA MÁX.', val: '~3x peso' }
+    ],
+    notes: '⚙ La lumbar soporta la mayor carga en el cuerpo. Es el punto de mayor riesgo ergonómico. Para Kotemah, el actuador lumbar es el más crítico: debe asistir durante la inclinación hacia adelante y el levantamiento.',
+    segment: 'torso'
+  },
+  hip_r: {
+    name: 'CADERA DERECHA', sub: 'Articulación enartrosis · 3 DOF',
+    color: 0xe040c0, position: { x: 0.8, y: 3.1 },
+    dof: [
+      { axis: 'Flexión / Extensión', min: -20, max: 120, default: 15, color: '#e040c0', unit: '°', key: 'flex' },
+      { axis: 'Abducción / Aducción', min: -30, max: 45, default: 0, color: '#e060c0', unit: '°', key: 'abd' },
+      { axis: 'Rotación Int. / Ext.', min: -45, max: 45, default: 0, color: '#e080c0', unit: '°', key: 'rot' }
+    ],
+    mechProps: [
+      { label: 'TIPO', val: 'Enartrosis' }, { label: 'DOF', val: '3' },
+      { label: 'ESTAB.', val: 'Muy alta' }, { label: 'MÚSCULO', val: 'Glúteo/Psoas' },
+      { label: 'PAR MÁX.', val: '~150 N·m' }, { label: 'VEL. MÁX.', val: '~250°/s' }
+    ],
+    notes: '⚙ La cadera es la articulación de mayor carga en el exoesqueleto de asistencia. El eje de flexión debe coincidir con el trocánter mayor. Considerar ajuste de longitud del segmento muslo para diferentes usuarios.',
+    segment: 'thigh_r'
+  },
+  hip_l: {
+    name: 'CADERA IZQUIERDA', sub: 'Articulación enartrosis · 3 DOF',
+    color: 0xe040c0, position: { x: -0.8, y: 3.1 },
+    dof: [
+      { axis: 'Flexión / Extensión', min: -20, max: 120, default: 15, color: '#e040c0', unit: '°', key: 'flex' },
+      { axis: 'Abducción / Aducción', min: -30, max: 45, default: 0, color: '#e060c0', unit: '°', key: 'abd' },
+      { axis: 'Rotación Int. / Ext.', min: -45, max: 45, default: 0, color: '#e080c0', unit: '°', key: 'rot' }
+    ],
+    mechProps: [
+      { label: 'TIPO', val: 'Enartrosis' }, { label: 'DOF', val: '3' },
+      { label: 'ESTAB.', val: 'Muy alta' }, { label: 'MÚSCULO', val: 'Glúteo/Psoas' },
+      { label: 'PAR MÁX.', val: '~150 N·m' }, { label: 'VEL. MÁX.', val: '~250°/s' }
+    ],
+    notes: '⚙ Mismas características que cadera derecha. En el ciclo de marcha, ambas caderas trabajan en contrafase con ~60% del ciclo en apoyo.',
+    segment: 'thigh_l'
+  },
+  knee_r: {
+    name: 'RODILLA DERECHA', sub: 'Articulación troclear · 1 DOF principal',
+    color: 0xc040e0, position: { x: 0.8, y: 1.8 },
+    dof: [
+      { axis: 'Flexión / Extensión', min: 0, max: 140, default: 10, color: '#c040e0', unit: '°', key: 'flex' }
+    ],
+    mechProps: [
+      { label: 'TIPO', val: 'Troclear' }, { label: 'DOF', val: '1 ppal' },
+      { label: 'EJE', val: 'Transversal' }, { label: 'MÚSCULO', val: 'Cuádriceps/Isquio' },
+      { label: 'PAR MÁX.', val: '~200 N·m' }, { label: 'VEL. MÁX.', val: '~400°/s' }
+    ],
+    notes: '⚙ La rodilla tiene un eje de rotación instantáneo que migra durante la flexión (no es pivote fijo). Para el exoesqueleto, usar mecanismo policéntrico de 4 barras para seguir el CIR natural. Evitar ejes fijos que generan fricción y dolor.',
+    segment: 'shank_r'
+  },
+  knee_l: {
+    name: 'RODILLA IZQUIERDA', sub: 'Articulación troclear · 1 DOF principal',
+    color: 0xc040e0, position: { x: -0.8, y: 1.8 },
+    dof: [
+      { axis: 'Flexión / Extensión', min: 0, max: 140, default: 10, color: '#c040e0', unit: '°', key: 'flex' }
+    ],
+    mechProps: [
+      { label: 'TIPO', val: 'Troclear' }, { label: 'DOF', val: '1 ppal' },
+      { label: 'EJE', val: 'Transversal' }, { label: 'MÚSCULO', val: 'Cuádriceps/Isquio' },
+      { label: 'PAR MÁX.', val: '~200 N·m' }, { label: 'VEL. MÁX.', val: '~400°/s' }
+    ],
+    notes: '⚙ Mismas características que rodilla derecha. En el ciclo de marcha, la rodilla absorbe energía durante el apoyo (fase excéntrica de cuádriceps).',
+    segment: 'shank_l'
+  },
+  ankle_r: {
+    name: 'TOBILLO DERECHO', sub: 'Articulación trocoide · 2 DOF',
+    color: 0xa040ff, position: { x: 0.8, y: 0.4 },
+    dof: [
+      { axis: 'Dorsiflexión / Plantarflexión', min: -45, max: 20, default: 5, color: '#a040ff', unit: '°', key: 'flex' },
+      { axis: 'Inversión / Eversión', min: -35, max: 15, default: 0, color: '#b060ff', unit: '°', key: 'inv' }
+    ],
+    mechProps: [
+      { label: 'TIPO', val: 'Trocoide' }, { label: 'DOF', val: '2' },
+      { label: 'EJE', val: 'Oblicuo' }, { label: 'MÚSCULO', val: 'Tibial/Gastrocnemio' },
+      { label: 'PAR MÁX.', val: '~140 N·m' }, { label: 'CARGA', val: '~3x peso corporal' }
+    ],
+    notes: '⚙ El tobillo absorbe y libera más energía que la rodilla en el ciclo de marcha. Para Kotemah, el resorte elástico en el tobillo puede recuperar hasta 40% de la energía de paso. El eje de plantarflexión es oblicuo (~10° medial).',
+    segment: 'foot_r'
+  },
+  ankle_l: {
+    name: 'TOBILLO IZQUIERDO', sub: 'Articulación trocoide · 2 DOF',
+    color: 0xa040ff, position: { x: -0.8, y: 0.4 },
+    dof: [
+      { axis: 'Dorsiflexión / Plantarflexión', min: -45, max: 20, default: 5, color: '#a040ff', unit: '°', key: 'flex' },
+      { axis: 'Inversión / Eversión', min: -35, max: 15, default: 0, color: '#b060ff', unit: '°', key: 'inv' }
+    ],
+    mechProps: [
+      { label: 'TIPO', val: 'Trocoide' }, { label: 'DOF', val: '2' },
+      { label: 'EJE', val: 'Oblicuo' }, { label: 'MÚSCULO', val: 'Tibial/Gastrocnemio' },
+      { label: 'PAR MÁX.', val: '~140 N·m' }, { label: 'CARGA', val: '~3x peso corporal' }
+    ],
+    notes: '⚙ Mismas características que tobillo derecho.',
+    segment: 'foot_l'
+  }
+};
+
+// Current angle state
+const jointAngles = {};
+Object.keys(JOINTS).forEach(jid => {
+  jointAngles[jid] = {};
+  JOINTS[jid].dof.forEach(d => { jointAngles[jid][d.key] = d.default; });
+});
+
+let selectedJoint = null;
+let isAnimating = false;
+let animDir = 1;
+
+// ============================================================
+// THREE.JS SETUP
+// ============================================================
+const wrap = document.getElementById('canvas-wrap');
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+renderer.setPixelRatio(window.devicePixelRatio);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.setClearColor(0x080b10);
+wrap.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.fog = new THREE.Fog(0x080b10, 30, 60);
+
+const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 100);
+camera.position.set(0, 4.5, 14);
+camera.lookAt(0, 4, 0);
+
+// Lighting
+const ambient = new THREE.AmbientLight(0x203050, 1.2);
+scene.add(ambient);
+const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+dirLight.position.set(5, 10, 8);
+dirLight.castShadow = true;
+scene.add(dirLight);
+const rimLight = new THREE.DirectionalLight(0xc8f000, 0.3);
+rimLight.position.set(-5, 5, -5);
+scene.add(rimLight);
+
+// Grid floor
+const grid = new THREE.GridHelper(20, 20, 0x1e2535, 0x1e2535);
+grid.position.y = 0;
+scene.add(grid);
+
+// Axis helper
+const axisHelper = new THREE.AxesHelper(1.5);
+axisHelper.position.set(-4, 0.05, 3);
+scene.add(axisHelper);
+
+// ============================================================
+// BUILD EXOSKELETON MODEL  — Correct kinematic chain
+// ============================================================
+/*
+  HIERARCHY per arm:
+    exoGroup
+      └─ shoulderPivot_r   ← rotates for SHOULDER
+           └─ upperArm mesh (goes down -Y)
+           └─ elbowPivot_r  (positioned at bottom of upperArm)  ← rotates for ELBOW
+                └─ forearm mesh (goes down -Y)
+                └─ wristPivot_r  (positioned at bottom of forearm)  ← rotates for WRIST
+                     └─ hand mesh
+
+  HIERARCHY per leg:
+    exoGroup
+      └─ hipPivot_r         ← rotates for HIP
+           └─ thigh mesh
+           └─ kneePivot_r   ← rotates for KNEE
+                └─ shank mesh
+                └─ anklePivot_r  ← rotates for ANKLE
+                     └─ foot mesh
+
+  KEY RULE: each pivot group is positioned at the JOINT location.
+  The child segment mesh is offset so it hangs downward FROM that pivot.
+  Rotating the pivot = rotating everything below it in the chain.
+*/
+
+// Joint pivots registry — keyed by jointId
+const jointPivots = {};
+// Joint sphere meshes for raycasting
+const jointMeshes = [];
+
+let wireMode = true;
+
+function newMat() {
+  return new THREE.MeshLambertMaterial({ color: 0x2a3548, wireframe: wireMode });
+}
+
+function makeCylinder(r, h) {
+  const g = new THREE.CylinderGeometry(r, r, h, 10);
+  return new THREE.Mesh(g, newMat());
+}
+function makeSphere(r, mat) {
+  const g = new THREE.SphereGeometry(r, 12, 8);
+  return new THREE.Mesh(g, mat || newMat());
+}
+function makeBox(w, h, d) {
+  const g = new THREE.BoxGeometry(w, h, d);
+  return new THREE.Mesh(g, newMat());
+}
+
+// Segment lengths & radii
+const S = {
+  uArm: 1.3,  uArmR: 0.10,   // upper arm
+  fArm: 1.2,  fArmR: 0.09,   // forearm
+  hand: 0.45, handH: 0.20,
+  thigh: 1.6, thighR: 0.11,
+  shank: 1.5, shankR: 0.10,
+  foot:  0.48, footH: 0.13,
+  torsoH: 2.2, torsoW: 0.9, torsoD: 0.38,
+  pelvisH: 0.32, pelvisW: 1.0,
+  headR: 0.34, neckR: 0.12, neckH: 0.38,
+  jR: 0.16   // joint sphere radius
+};
+
+const pelvisY = 3.4;   // world Y of pelvis CENTER
+const exoGroup = new THREE.Group();
+scene.add(exoGroup);
+
+// ────────────────────────────────────────────
+// TORSO (spine pivot at TOP of pelvis)
+// ────────────────────────────────────────────
+const spinePivot = new THREE.Group();
+// spinePivot sits at the TOP edge of the pelvis in world space
+spinePivot.position.set(0, pelvisY + S.pelvisH / 2, 0);
+exoGroup.add(spinePivot);
+jointPivots['spine_t'] = spinePivot;
+jointPivots['spine_l'] = spinePivot;
+
+// Pelvis mesh (added to exoGroup in world space, NOT to spinePivot so it doesn't tilt with torso)
+const pelvisMesh = makeBox(S.pelvisW, S.pelvisH, S.torsoD * 0.8);
+pelvisMesh.position.set(0, pelvisY, 0);   // centered at pelvisY
+exoGroup.add(pelvisMesh);
+
+// Torso body — local Y 0..torsoH inside spinePivot
+const torsoMesh = makeBox(S.torsoW, S.torsoH, S.torsoD);
+torsoMesh.position.set(0, S.torsoH / 2, 0);
+spinePivot.add(torsoMesh);
+
+// Shoulder bar at top of torso
+const shBar = makeBox(S.pelvisW * 1.75, 0.16, S.torsoD);
+shBar.position.set(0, S.torsoH + 0.08, 0);
+spinePivot.add(shBar);
+
+// Neck
+const neckMesh = makeCylinder(S.neckR, S.neckH);
+neckMesh.position.set(0, S.torsoH + S.neckH / 2 + 0.18, 0);
+spinePivot.add(neckMesh);
+
+// Head
+const headMesh = makeSphere(S.headR);
+headMesh.position.set(0, S.torsoH + S.neckH + S.headR + 0.22, 0);
+spinePivot.add(headMesh);
+
+// ────────────────────────────────────────────
+// BUILD ARM — correct nested pivots
+// ────────────────────────────────────────────
+function buildArm(side) {
+  const sx = side === 'r' ? 1 : -1;
+  // spinePivot is at Y = pelvisY + pelvisH/2 in world space.
+  // shoulderPivot is a CHILD of spinePivot, so its position is LOCAL to spinePivot.
+  // The shoulder sits at the TOP of the torso = torsoH + half of shoulder bar height.
+  const shX_local = sx * (S.pelvisW * 0.87);
+  const shY_local = S.torsoH + 0.08;   // local Y inside spinePivot
+
+  // ── SHOULDER PIVOT (at shoulder joint, child of spinePivot) ──
+  const shoulderPivot = new THREE.Group();
+  shoulderPivot.position.set(shX_local, shY_local, 0);
+  spinePivot.add(shoulderPivot);
+  jointPivots['shoulder_' + side] = shoulderPivot;
+
+  // Upper arm mesh: hangs -Y from shoulder pivot
+  const uArmMesh = makeCylinder(S.uArmR, S.uArm);
+  uArmMesh.position.set(0, -S.uArm / 2, 0);
+  shoulderPivot.add(uArmMesh);
+
+  // ── ELBOW PIVOT (at bottom of upper arm) ──
+  const elbowPivot = new THREE.Group();
+  elbowPivot.position.set(0, -S.uArm, 0); // local offset inside shoulderPivot
+  shoulderPivot.add(elbowPivot);
+  jointPivots['elbow_' + side] = elbowPivot;
+
+  // Forearm mesh: hangs -Y from elbow pivot
+  const fArmMesh = makeCylinder(S.fArmR, S.fArm);
+  fArmMesh.position.set(0, -S.fArm / 2, 0);
+  elbowPivot.add(fArmMesh);
+
+  // ── WRIST PIVOT (at bottom of forearm) ──
+  const wristPivot = new THREE.Group();
+  wristPivot.position.set(0, -S.fArm, 0);
+  elbowPivot.add(wristPivot);
+  jointPivots['wrist_' + side] = wristPivot;
+
+  // Hand mesh
+  const handMesh = makeBox(S.hand * 0.45, S.handH, S.hand * 0.28);
+  handMesh.position.set(sx * 0.04, -S.handH / 2, 0);
+  wristPivot.add(handMesh);
+}
+
+buildArm('r');
+buildArm('l');
+
+// ────────────────────────────────────────────
+// BUILD LEG — correct nested pivots
+// ────────────────────────────────────────────
+function buildLeg(side) {
+  const sx = side === 'r' ? 1 : -1;
+  const hipX = sx * 0.38;
+  // Hip joint is at the bottom edge of the pelvis (pelvis center minus half height)
+  const hipY = pelvisY - S.pelvisH / 2;
+
+  // ── HIP PIVOT ──
+  const hipPivot = new THREE.Group();
+  hipPivot.position.set(hipX, hipY, 0);
+  exoGroup.add(hipPivot);
+  jointPivots['hip_' + side] = hipPivot;
+
+  // Thigh
+  const thighMesh = makeCylinder(S.thighR, S.thigh);
+  thighMesh.position.set(0, -S.thigh / 2, 0);
+  hipPivot.add(thighMesh);
+
+  // ── KNEE PIVOT ──
+  const kneePivot = new THREE.Group();
+  kneePivot.position.set(0, -S.thigh, 0);
+  hipPivot.add(kneePivot);
+  jointPivots['knee_' + side] = kneePivot;
+
+  // Shank
+  const shankMesh = makeCylinder(S.shankR, S.shank);
+  shankMesh.position.set(0, -S.shank / 2, 0);
+  kneePivot.add(shankMesh);
+
+  // ── ANKLE PIVOT ──
+  const anklePivot = new THREE.Group();
+  anklePivot.position.set(0, -S.shank, 0);
+  kneePivot.add(anklePivot);
+  jointPivots['ankle_' + side] = anklePivot;
+
+  // Foot
+  const footMesh = makeBox(S.foot, S.footH, 0.20);
+  footMesh.position.set(sx * 0.08, -S.footH / 2, 0.05);
+  anklePivot.add(footMesh);
+}
+
+buildLeg('r');
+buildLeg('l');
+
+// ────────────────────────────────────────────
+// JOINT INDICATOR SPHERES (clickable)
+// Each sphere is a CHILD of its own pivot group
+// so it moves with the body correctly.
+// ────────────────────────────────────────────
+function addJointSpheres() {
+  Object.keys(JOINTS).forEach(jid => {
+    const jdata = JOINTS[jid];
+    const pivot = jointPivots[jid];
+    if (!pivot) return;
+
+    const matJ = new THREE.MeshLambertMaterial({
+      color: jdata.color,
+      emissive: new THREE.Color(jdata.color).multiplyScalar(0.35),
+      transparent: true, opacity: 0.92
+    });
+    const sphere = makeSphere(S.jR, matJ);
+    sphere.name = 'joint_' + jid;
+    sphere._jointId = jid;
+    sphere._baseMat = matJ;
+    // Position at origin of pivot (the joint location itself)
+    sphere.position.set(0, 0, 0);
+    pivot.add(sphere);  // child of pivot → always at joint location
+    jointMeshes.push(sphere);
+  });
+}
+
+addJointSpheres();
+
+// ============================================================
+// ORBIT CONTROLS (manual impl)
+// ============================================================
+let isOrbiting = false, isPanning = false;
+let prevMouse = { x: 0, y: 0 };
+let spherical = { theta: 0.2, phi: 1.1, radius: 14 };
+let target = new THREE.Vector3(0, 4, 0);
+
+function updateCamera() {
+  camera.position.x = target.x + spherical.radius * Math.sin(spherical.phi) * Math.sin(spherical.theta);
+  camera.position.y = target.y + spherical.radius * Math.cos(spherical.phi);
+  camera.position.z = target.z + spherical.radius * Math.sin(spherical.phi) * Math.cos(spherical.theta);
+  camera.lookAt(target);
+}
+updateCamera();
+
+wrap.addEventListener('mousedown', e => {
+  if (e.button === 0) isOrbiting = true;
+  if (e.button === 2) isPanning = true;
+  prevMouse = { x: e.clientX, y: e.clientY };
+});
+window.addEventListener('mouseup', () => { isOrbiting = false; isPanning = false; });
+wrap.addEventListener('mousemove', e => {
+  if (!isOrbiting && !isPanning) return;
+  const dx = (e.clientX - prevMouse.x) * 0.008;
+  const dy = (e.clientY - prevMouse.y) * 0.008;
+  if (isOrbiting) {
+    spherical.theta -= dx;
+    spherical.phi = Math.max(0.1, Math.min(Math.PI - 0.1, spherical.phi + dy));
+  }
+  if (isPanning) {
+    target.y += dy * 1.5;
+    target.x -= dx * 1.5;
+  }
+  prevMouse = { x: e.clientX, y: e.clientY };
+  updateCamera();
+});
+wrap.addEventListener('wheel', e => {
+  spherical.radius = Math.max(4, Math.min(30, spherical.radius + e.deltaY * 0.02));
+  updateCamera();
+  e.preventDefault();
+}, { passive: false });
+wrap.addEventListener('contextmenu', e => e.preventDefault());
+
+// ============================================================
+// RAYCASTING / CLICK
+// ============================================================
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
+const tooltip = document.getElementById('tooltip');
+
+wrap.addEventListener('mousemove', e => {
+  const rect = wrap.getBoundingClientRect();
+  mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+  mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+
+  raycaster.setFromCamera(mouse, camera);
+  const hits = raycaster.intersectObjects(jointMeshes);
+  if (hits.length > 0) {
+    const jid = hits[0].object._jointId;
+    if (jid) {
+      tooltip.style.display = 'block';
+      tooltip.style.left = (e.clientX + 12) + 'px';
+      tooltip.style.top = (e.clientY - 20) + 'px';
+      tooltip.textContent = '⬡ ' + JOINTS[jid].name + ' · ' + JOINTS[jid].dof.length + ' DOF — Click para analizar';
+      wrap.style.cursor = 'pointer';
+    }
+  } else {
+    tooltip.style.display = 'none';
+    wrap.style.cursor = 'crosshair';
+  }
+});
+
+wrap.addEventListener('click', e => {
+  const rect = wrap.getBoundingClientRect();
+  mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+  mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+  raycaster.setFromCamera(mouse, camera);
+  const hits = raycaster.intersectObjects(jointMeshes);
+  if (hits.length > 0) {
+    const jid = hits[0].object._jointId;
+    if (jid) selectJoint(jid);
+  }
+});
+
+// ============================================================
+// SELECT JOINT
+// ============================================================
+let prevSelectedMesh = null;
+
+function selectJoint(jid) {
+  if (isAnimating) stopAnimation();
+
+  // Deselect previous
+  document.querySelectorAll('.joint-btn').forEach(b => b.classList.remove('selected'));
+  jointMeshes.forEach(m => {
+    if (m._baseMat) m.material = m._baseMat;
+  });
+
+  selectedJoint = jid;
+  const jdata = JOINTS[jid];
+
+  // Highlight button
+  const btn = document.getElementById('jbtn-' + jid);
+  if (btn) btn.classList.add('selected');
+
+  // Highlight mesh
+  const mesh = jointMeshes.find(m => m._jointId === jid);
+  if (mesh) {
+    mesh.material = new THREE.MeshLambertMaterial({ color: 0xc8f000, emissive: 0x406000, emissiveIntensity: 1 });
+  }
+
+  // Populate right panel
+  document.getElementById('no-select-msg').style.display = 'none';
+  const ac = document.getElementById('analysis-content');
+  ac.style.display = 'flex';
+
+  document.getElementById('rp-name').textContent = jdata.name;
+  document.getElementById('rp-sub').textContent = jdata.sub;
+
+  // ROM bars
+  const romC = document.getElementById('rom-container');
+  romC.innerHTML = '';
+  jdata.dof.forEach(d => {
+    const range = d.max - d.min;
+    const zeroPos = ((-d.min) / range) * 100;
+    const currentPos = ((jointAngles[jid][d.key] - d.min) / range) * 100;
+    romC.innerHTML += `
+      <div class="rom-item">
+        <div class="rom-top">
+          <span class="rom-axis">${d.axis}</span>
+          <span class="rom-range">${d.min}° → ${d.max}°</span>
+        </div>
+        <div class="rom-bar-wrap">
+          <div class="rom-bar" id="rombar-${jid}-${d.key}" style="width:${currentPos}%;background:${d.color};"></div>
+          <div class="rom-zero" style="left:${zeroPos}%"></div>
+          <div class="rom-current" id="romcur-${jid}-${d.key}" style="left:${currentPos}%"></div>
+        </div>
+      </div>`;
+  });
+
+  // Angle sliders
+  const angC = document.getElementById('angle-controls');
+  angC.innerHTML = '';
+  jdata.dof.forEach(d => {
+    const val = jointAngles[jid][d.key];
+    angC.innerHTML += `
+      <div class="angle-control">
+        <div class="angle-top">
+          <span class="angle-name">${d.axis}</span>
+          <span class="angle-val" id="av-${jid}-${d.key}">${val}°</span>
+        </div>
+        <input type="range" class="angle-slider" min="${d.min}" max="${d.max}" value="${val}"
+          oninput="setAngle('${jid}','${d.key}',this.value)"
+          style="accent-color:${d.color}">
+      </div>`;
+  });
+
+  // Mech props
+  const mp = document.getElementById('mech-props');
+  mp.innerHTML = jdata.mechProps.map(p =>
+    `<div class="info-cell"><div class="info-cell-label">${p.label}</div><div class="info-cell-val">${p.val}</div></div>`
+  ).join('');
+
+  // Design notes
+  document.getElementById('design-notes').textContent = jdata.notes;
+
+  // Focus camera on joint
+  focusOnJoint(jid);
+}
+
+function focusOnJoint(jid) {
+  const pivot = jointPivots[jid];
+  if (!pivot) return;
+  const wp = new THREE.Vector3();
+  pivot.getWorldPosition(wp);
+  const startTarget = target.clone();
+  let t = 0;
+  function animFocus() {
+    t += 0.06;
+    if (t < 1) {
+      target.lerpVectors(startTarget, wp, t);
+      updateCamera();
+      requestAnimationFrame(animFocus);
+    } else {
+      target.copy(wp);
+      updateCamera();
+    }
+  }
+  animFocus();
+}
+
+// ============================================================
+// SET ANGLE + APPLY TO MODEL
+// ============================================================
+function setAngle(jid, key, value) {
+  value = parseFloat(value);
+  jointAngles[jid][key] = value;
+
+  // Update display
+  const av = document.getElementById(`av-${jid}-${key}`);
+  if (av) av.textContent = Math.round(value) + '°';
+
+  // Update ROM bar
+  const jdata = JOINTS[jid];
+  const d = jdata.dof.find(x => x.key === key);
+  if (d) {
+    const range = d.max - d.min;
+    const pos = ((value - d.min) / range) * 100;
+    const bar = document.getElementById(`rombar-${jid}-${key}`);
+    const cur = document.getElementById(`romcur-${jid}-${key}`);
+    if (bar) bar.style.width = pos + '%';
+    if (cur) cur.style.left = pos + '%';
+  }
+
+  // Apply rotation to model segment
+  applyJointToModel(jid);
+}
+
+function applyJointToModel(jid) {
+  const pivot = jointPivots[jid];
+  if (!pivot) return;
+
+  const angles = jointAngles[jid];
+  const toRad = v => (v || 0) * Math.PI / 180;
+  const flex = toRad(angles.flex);
+  const abd  = toRad(angles.abd);
+  const rot  = toRad(angles.rot);
+  const pron = toRad(angles.pron);
+  const inv  = toRad(angles.inv);
+  const lat  = toRad(angles.lat);
+  const dev  = toRad(angles.dev);
+
+  if (jid.startsWith('elbow')) {
+    // Elbow: flexion = bend forearm toward upper arm (pivot rotates around X)
+    // At 0° arm is straight down. Positive flex bends forearm forward.
+    pivot.rotation.set(flex, 0, pron);
+  } else if (jid.startsWith('shoulder')) {
+    const sx = jid.endsWith('_r') ? 1 : -1;
+    // Shoulder: flex raises arm forward, abd raises sideways
+    pivot.rotation.set(flex, rot * sx, abd * sx);
+  } else if (jid.startsWith('wrist')) {
+    pivot.rotation.set(flex, 0, dev);
+  } else if (jid.startsWith('hip')) {
+    const sx = jid.endsWith('_r') ? 1 : -1;
+    pivot.rotation.set(-flex, rot * sx, abd * sx);
+  } else if (jid.startsWith('knee')) {
+    // Knee: positive flex bends shank backward
+    pivot.rotation.set(flex, 0, 0);
+  } else if (jid.startsWith('ankle')) {
+    pivot.rotation.set(-flex, 0, inv);
+  } else if (jid === 'spine_t' || jid === 'spine_l') {
+    pivot.rotation.set(flex, rot, lat);
+  }
+}
+
+function resetJointAngles() {
+  if (!selectedJoint) return;
+  const jdata = JOINTS[selectedJoint];
+  jdata.dof.forEach(d => {
+    jointAngles[selectedJoint][d.key] = d.default;
+    const slider = document.querySelector(`input[oninput*="${selectedJoint},'${d.key}'"]`);
+    if (slider) slider.value = d.default;
+    setAngle(selectedJoint, d.key, d.default);
+  });
+  selectJoint(selectedJoint); // re-render panel
+}
+
+function resetAllJoints() {
+  if (isAnimating) stopAnimation();
+
+  // Reset every joint to default angles
+  Object.keys(JOINTS).forEach(jid => {
+    JOINTS[jid].dof.forEach(d => {
+      jointAngles[jid][d.key] = d.default;
+    });
+    applyJointToModel(jid);
+  });
+
+  // If a joint is selected, refresh its panel to show updated sliders/bars
+  if (selectedJoint) selectJoint(selectedJoint);
+
+  // Flash the button to give feedback
+  const btn = document.getElementById('btn-reset-all');
+  btn.textContent = '✔ LISTO';
+  btn.style.color = '#3ecf8e';
+  btn.style.borderColor = '#3ecf8e';
+  setTimeout(() => {
+    btn.textContent = '↺ RESET ALL';
+    btn.style.color = '#ff4060';
+    btn.style.borderColor = '#ff4060';
+  }, 900);
+}
+
+// ============================================================
+// ANIMATION
+// ============================================================
+let animTime = 0;
+
+function toggleAnimation() {
+  if (isAnimating) {
+    stopAnimation();
+  } else {
+    startAnimation();
+  }
+}
+
+function startAnimation() {
+  if (!selectedJoint) return;
+  isAnimating = true;
+  document.getElementById('anim-btn').textContent = '⏹ DETENER';
+  document.getElementById('anim-btn').classList.add('playing');
+}
+
+function stopAnimation() {
+  isAnimating = false;
+  document.getElementById('anim-btn').textContent = '▶ ANIMAR ROM';
+  document.getElementById('anim-btn').classList.remove('playing');
+}
+
+function tickAnimation() {
+  if (!isAnimating || !selectedJoint) return;
+  const jdata = JOINTS[selectedJoint];
+  animTime += 0.025;
+
+  jdata.dof.forEach((d, i) => {
+    const t = animTime + i * Math.PI * 0.5;
+    const mid = (d.max + d.min) / 2;
+    const amp = (d.max - d.min) / 2 * 0.85;
+    const val = mid + Math.sin(t) * amp;
+    jointAngles[selectedJoint][d.key] = val;
+
+    const slider = document.querySelector(`input[oninput*="'${selectedJoint}','${d.key}'"]`);
+    if (slider) slider.value = val;
+    const av = document.getElementById(`av-${selectedJoint}-${d.key}`);
+    if (av) av.textContent = Math.round(val) + '°';
+
+    const range = d.max - d.min;
+    const pos = ((val - d.min) / range) * 100;
+    const bar = document.getElementById(`rombar-${selectedJoint}-${d.key}`);
+    const cur = document.getElementById(`romcur-${selectedJoint}-${d.key}`);
+    if (bar) bar.style.width = pos + '%';
+    if (cur) cur.style.left = pos + '%';
+  });
+
+  applyJointToModel(selectedJoint);
+}
+
+// ============================================================
+// WIREFRAME TOGGLE
+// ============================================================
+function toggleWireframe() {
+  wireMode = true;
+  document.getElementById('btn-wireframe').classList.add('active');
+  document.getElementById('btn-solid').classList.remove('active');
+  exoGroup.traverse(obj => {
+    if (obj.isMesh && !obj._jointId) {
+      obj.material = new THREE.MeshLambertMaterial({ color: 0x2a3548, wireframe: true });
+    }
+  });
+}
+function toggleSolid() {
+  wireMode = false;
+  document.getElementById('btn-solid').classList.add('active');
+  document.getElementById('btn-wireframe').classList.remove('active');
+  exoGroup.traverse(obj => {
+    if (obj.isMesh && !obj._jointId) {
+      obj.material = new THREE.MeshLambertMaterial({ color: 0x2a3548, wireframe: false });
+    }
+  });
+}
+
+function resetCamera() {
+  spherical = { theta: 0.2, phi: 1.1, radius: 14 };
+  target.set(0, 4, 0);
+  updateCamera();
+}
+
+// ============================================================
+// RESIZE
+// ============================================================
+function resize() {
+  const w = wrap.clientWidth, h = wrap.clientHeight;
+  renderer.setSize(w, h);
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+}
+window.addEventListener('resize', resize);
+resize();
+
+// ============================================================
+// RENDER LOOP
+// ============================================================
+function animate() {
+  requestAnimationFrame(animate);
+  tickAnimation();
+
+  // Rotate joint spheres slightly for visibility
+  jointMeshes.forEach(m => { m.rotation.y += 0.008; });
+
+  renderer.render(scene, camera);
+}
+animate();
+
+// Auto-select elbow on load
+setTimeout(() => selectJoint('elbow_r'), 600);
+</script>
+</body>
+</html>
