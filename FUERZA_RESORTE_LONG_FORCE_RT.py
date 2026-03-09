@@ -5,7 +5,7 @@ import warnings
 
 warnings.filterwarnings("ignore", category=UserWarning)
 
-def plot_resortF(L0=270.0, Lf=373.16, k=0.7539):
+def plot_resortF(L0=261.2, Lf=437.64, k=0.23):
     if Lf <= L0:
         print("Lf debe ser mayor que L0.")
         return
