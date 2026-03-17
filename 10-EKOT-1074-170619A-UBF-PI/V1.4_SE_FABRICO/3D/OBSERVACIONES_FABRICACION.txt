@@ -1,0 +1,6 @@
+OBSERVACIONES 
+
+- los bujes roscados de la faja, son de menor diametro que el CAD, podemos ajustar dimensiones de las placas y del nymalid.
+- Debemos comprar la rotula correcta con el proveedor de monterrey, porque se compro una de reemplazo.
+- Polea superior sistema de asitencia, el barreno debe ser de 6.3
+- Basreno de placa porta motor, pieza 2, el barreno de la flecha y el motoir mas grande, porque al ser ajustable puede tocar la placa las felchas

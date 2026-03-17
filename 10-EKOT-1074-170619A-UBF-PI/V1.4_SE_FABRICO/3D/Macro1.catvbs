@@ -1,0 +1,188 @@
+Dim objGEXCELapp As Object
+Dim objGEXCELwkBks As Object
+Dim objGEXCELwkBk As Object
+Dim objGEXCELwkShs As Object
+Dim objGEXCELSh As Object
+Dim PartDocument1
+Dim oSelection As Integer
+Dim xlCenter As Integer
+Dim xlBottom As Integer
+
+
+
+Sub CATMain()
+
+On Error Resume Next
+
+Set partDocument1 = CATIA.ActiveDocument
+
+Set oselection =CATIA.ActiveDocument.Selection
+
+Dim MyWindow As SpecsAndGeomWindow
+Dim MyViewer As Viewer3D
+
+Set MyWindow = CATIA.ActiveWindow
+
+MyWindow.Layout = catWindowGeomOnly
+
+Catia.ActiveWindow.Viewers.item(1).CaptureToFile 1, "C:\Temp\OBMSectionR1.emf"
+
+'MyWindow.Layout = catWindowSpecsOnly
+
+MyWindow.Layout = catWindowSpecsAndGeom
+
+
+'******************************************************************************
+
+StartEXCEL
+
+ExportParameter
+
+UnLinkImage
+
+End Sub
+
+'******************************************************************************
+Sub StartEXCEL()
+'******************************************************************************
+Err.Clear
+On Error Resume Next
+Set objGEXCELapp = GetObject (,"EXCEL.Application")
+
+If Err.Number <> 0 Then
+Err.Clear
+Set objGEXCELapp = CreateObject ("EXCEL.Application")
+End If
+
+objGEXCELapp.Application.Visible = TRUE
+Set objGEXCELwkBks = objGEXCELapp.Application.WorkBooks
+Set objGEXCELwkBk = objGEXCELwkBks.Add
+Set objGEXCELwkShs = objGEXCELwkBk.Worksheets(1)
+Set objGEXCELSh = objGEXCELwkBk.Sheets (1)
+objGEXCELSh.Cells (4,"A") = "Attribute"
+objGEXCELSh.Cells (4,"B") = "Value"
+objGEXCELSh.Cells (2,"A") = (partDocument1.Path)
+objGEXCELSh.Cells (3,"A") = (partDocument1.Name)
+objGEXCELSh.Cells (2,"B") = "File Path"
+objGEXCELSh.Cells (3,"B") = "File Name"
+objGEXCELSh.Cells (2,"A").WrapText = True
+objGEXCELSh.Cells (3,"A").WrapText = True
+objGEXCELSh.Range("A1:B1").MergeCells = True
+objGEXCELSh.Range("A1:B1").border
+
+
+End Sub
+'''''''''''''''''''''''''''
+
+'******************************************************************************
+Sub ExportParameter()
+'******************************************************************************
+On Error Resume Next
+
+
+
+Dim i As Integer
+For i = 1 To oSelection.Count
+
+Dim oSelectedElement As SelectedElement
+Set oSelectedElement = oSelection.Item(i)
+
+Dim sElementName As String
+sElementName = oSelectedElement.Value.Name
+
+Dim sElementValue As String
+sElementValue = oSelectedElement.Value.Value
+
+objGEXCELSh.Cells (i+4,"A") = sElementName
+objGEXCELSh.Cells (i+4,"B") = sElementValue
+
+
+next
+
+Const xlCenter = -4108
+'Const xlBottom = -4107
+
+
+Dim Choice As String
+'display an input box asking for number format format choice
+Choice = InputBox( "0 x."& vbCrLf & "1 x.x" & vbCrLf & "2 x.xx" & vbCrLf & "3 x.xxx", "Choose decimal places 0,1, 2 or 3", "2")
+
+
+If Choice = 1 then
+tolx = "0.0"
+
+
+ElseIf Choice = 2 Then
+tolx = "0.00"
+
+ElseIf Choice = 0 Then
+tolx = "0"
+
+Else
+tolx = "0.000"
+
+
+End If
+
+
+objGEXCELSh.Columns("B").NumberFormat = tolx
+
+objGEXCELSh.Columns("A").ColumnWidth = 40
+objGEXCELSh.Columns("B").ColumnWidth = 15
+
+objGEXCELSh.Rows("1").RowHeight = 150
+objGEXCELSh.Rows("4").RowHeight = 25
+
+objGEXCELSh.Columns("A:B").HorizontalAlignment = xlCenter
+objGEXCELSh.Range("A4:B4").Font.Bold = True
+objGEXCELSh.Range("A4").Font.Size = 20
+objGEXCELSh.Range("B4").Font.Size = 20
+objGEXCELSh.Range("A2").Font.Size = 10
+objGEXCELSh.Range("A3").Font.Size = 10
+objGEXCELSh.Range("A2:B2").Font.color = vbBlue
+objGEXCELSh.Range("A3:B3").Font.color = vbBlue
+
+
+'add borders to cells in excel
+Dim rowcount as Integer
+rowcount = oSelection.Count + 4
+objGEXCELSh.Range("A4:B" & rowcount).Borders.LineStyle = 1
+objGEXCELSh.Range("A4:B4").Interior.ColorIndex = 15
+objGEXCELSh.Range("A2:B3").Interior.ColorIndex = 4
+
+objGEXCELSh.Range("A4:B" & rowcount).Borders(7).Weight = 4
+objGEXCELSh.Range("A4:B" & rowcount).Borders(8).Weight = 4
+objGEXCELSh.Range("A4:B" & rowcount).Borders(9).Weight = 4
+objGEXCELSh.Range("A4:B" & rowcount).Borders(10).Weight = 4
+
+' Add Picture to cells a1 and b1
+Dim rng As Range
+Set rng = objGEXCELSh.Range("A1:B1")
+Dim pic As Picture
+Dim v As Variant
+
+set pic = objGEXCELSh.Pictures.Insert("C:\Temp\OBMSectionR1.emf")
+
+With pic
+.ShapeRange.LockAspectRatio = msoTrue
+.Height = rng.Height -6 'size 6 smaller than cells for border to show
+.Width = rng.Width -6 'size 6 smaller than cells for border to show
+
+End With
+End Sub
+
+
+Sub UnLinkImage()
+
+objGEXCELSh.Shapes("Picture 2").Cut
+objGEXCELSh.Range("A1:B1").Select
+objGEXCELSh.Pictures.Paste.Select
+
+Dim pic3 As Picture
+Set pic3 = objGEXCELSh.Shapes("Picture 3")
+pic3.Line.Weight = 2
+pic3.Left = 3 'shift image 3 to center image in cell
+pic3.Top = 3 'shift image 3 to center image in cell
+
+
+End Sub

@@ -1,0 +1,2 @@
+- GABITO: 330 ANCHO, 500 LARGO
+- El motor 80T entrega 5400 RPM, el radio de los engranes es de 7.11, quiere decir que al husillo le llegan 760 rpm, que por segundo son 12.65, si el husillo es paso 2mm, quiere decir que por cada segundo girara el husillo 25.3 mm por segundo.
