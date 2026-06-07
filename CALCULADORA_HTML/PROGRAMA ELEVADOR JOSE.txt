@@ -1,0 +1,123 @@
+// Pines de entrada
+const int botonPin = 4;
+const int sensorArriba = 5;
+const int sensorAbajo = 6;
+
+// Pines de salida (Puente H)
+const int RPWM = 19; 
+const int LPWM = 20; 
+
+// Pines de LEDs
+const int ledSube = 18;
+const int ledBaja = 8;
+
+// Variables de control
+bool moviendo = false;
+int direccionActual = 0; // 0: Quieto, 1: Bajando, 2: Subiendo
+int ultimaDireccion = 0; // Para recordar a dónde iba antes de la pausa
+int velocidad = 200;
+
+void setup() {
+  Serial.begin(115200);
+
+  pinMode(botonPin, INPUT_PULLUP);
+  pinMode(sensorArriba, INPUT_PULLUP);
+  pinMode(sensorAbajo, INPUT_PULLUP);
+
+  pinMode(RPWM, OUTPUT);
+  pinMode(LPWM, OUTPUT);
+  pinMode(ledSube, OUTPUT);
+  pinMode(ledBaja, OUTPUT);
+  
+  detenerMotor();
+  Serial.println("Ascensor Inteligente Listo. Esperando comando...");
+}
+
+void loop() {
+  bool btnStatus = (digitalRead(botonPin) == LOW);
+  bool topeArriba = (digitalRead(sensorArriba) == LOW);
+  bool topeAbajo = (digitalRead(sensorAbajo) == LOW);
+
+  // --- LÓGICA DEL BOTÓN ---
+  if (btnStatus) {
+    delay(200); // Anti-rebote
+    
+    if (moviendo) {
+      // SI SE ESTÁ MOVIENDO Y PRESIONO: PAUSA
+      Serial.println("PAUSA detectada.");
+      detenerMotor();
+    } 
+    else {
+      // SI ESTÁ DETENIDO Y PRESIONO: REANUDAR O INICIAR
+      if (ultimaDireccion != 0) {
+        // Reanudar a la dirección que iba
+        if (ultimaDireccion == 1 && !topeAbajo) bajar();
+        else if (ultimaDireccion == 2 && !topeArriba) subir();
+        else decidirNuevaDireccion(topeArriba, topeAbajo);
+      } else {
+        decidirNuevaDireccion(topeArriba, topeAbajo);
+      }
+    }
+    while(digitalRead(botonPin) == LOW); // Esperar a que suelte el botón
+  }
+
+  // --- LÓGICA DE PARADA POR SENSORES ---
+  if (moviendo) {
+    if (direccionActual == 1 && topeAbajo) {
+      Serial.println("Llegó al piso inferior.");
+      ultimaDireccion = 0; // Reset para que la próxima vez decida según posición
+      detenerMotor();
+    }
+    if (direccionActual == 2 && topeArriba) {
+      Serial.println("Llegó al piso superior.");
+      ultimaDireccion = 0;
+      detenerMotor();
+    }
+  }
+}
+
+void decidirNuevaDireccion(bool arriba, bool abajo) {
+  if (arriba) {
+    bajar();
+  } else {
+    // Si está abajo o en medio, sube
+    subir();
+  }
+}
+
+void subir() {
+  Serial.println("Subiendo...");
+  moviendo = true;
+  direccionActual = 2;
+  ultimaDireccion = 2;
+  
+  digitalWrite(ledSube, HIGH);
+  digitalWrite(ledBaja, LOW);
+  
+  analogWrite(RPWM, 0);
+  analogWrite(LPWM, velocidad);
+}
+
+void bajar() {
+  Serial.println("Bajando...");
+  moviendo = true;
+  direccionActual = 1;
+  ultimaDireccion = 1;
+  
+  digitalWrite(ledSube, LOW);
+  digitalWrite(ledBaja, HIGH);
+  
+  analogWrite(RPWM, velocidad);
+  analogWrite(LPWM, 0);
+}
+
+void detenerMotor() {
+  moviendo = false;
+  direccionActual = 0;
+  
+  digitalWrite(ledSube, LOW);
+  digitalWrite(ledBaja, LOW);
+  
+  analogWrite(RPWM, 0);
+  analogWrite(LPWM, 0);
+}
