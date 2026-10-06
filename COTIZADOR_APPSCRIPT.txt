@@ -1,0 +1,60 @@
+function onOpen() {
+  var ui = SpreadsheetApp.getUi();
+  ui.createMenu('⚙️ Automatización')
+    .addItem('Crear nueva cotización para Proyecto', 'clonarCotizacion')
+    .addToUi();
+}
+
+function clonarCotizacion() {
+  var ui = SpreadsheetApp.getUi();
+  
+  // 1. Pedir el Nombre del Cliente
+  var respCliente = ui.prompt('Nueva Cotización', '1. Introduce el nombre del CLIENTE (ej. PALZIV):', ui.ButtonSet.OK_CANCEL);
+  if (respCliente.getSelectedButton() != ui.Button.OK) return;
+  var nombreCliente = respCliente.getResponseText().trim();
+
+  // 2. Pedir el Número/Nombre del Proyecto (se usará también para el archivo)
+  var respProyecto = ui.prompt('Nueva Cotización', '2. Introduce el NÚMERO DE PROYECTO:', ui.ButtonSet.OK_CANCEL);
+  if (respProyecto.getSelectedButton() != ui.Button.OK) return;
+  var noProyecto = respProyecto.getResponseText().trim();
+
+  // ID de tu carpeta principal PROYECTOS_2025
+  var idCarpetaRaiz = "16PF5Tjk9U9HcJEjwIibNuNZ6flH7rgG0"; 
+  
+  try {
+    var carpetaRaiz = DriveApp.getFolderById(idCarpetaRaiz);
+    
+    // Buscar carpeta del Cliente
+    var subCarpetasCliente = carpetaRaiz.getFoldersByName(nombreCliente);
+    if (!subCarpetasCliente.hasNext()) {
+      ui.alert('Error', 'No se encontró la carpeta del cliente "' + nombreCliente + '" dentro de PROYECTOS_2025.', ui.ButtonSet.OK);
+      return;
+    }
+    var carpetaCliente = subCarpetasCliente.next();
+    
+    // Buscar carpeta del Número de Proyecto dentro del Cliente
+    var subCarpetasProyecto = carpetaCliente.getFoldersByName(noProyecto);
+    if (!subCarpetasProyecto.hasNext()) {
+      ui.alert('Error', 'No se encontró la carpeta del proyecto "' + noProyecto + '" dentro de ' + nombreCliente, ui.ButtonSet.OK);
+      return;
+    }
+    var carpetaProyecto = subCarpetasProyecto.next();
+    
+    // Buscar la carpeta DOC dentro del Proyecto
+    var subCarpetasDoc = carpetaProyecto.getFoldersByName("DOC");
+    if (!subCarpetasDoc.hasNext()) {
+      ui.alert('Error', 'No se encontró la subcarpeta "DOC" dentro de este proyecto.', ui.ButtonSet.OK);
+      return;
+    }
+    var carpetaDestinoDoc = subCarpetasDoc.next();
+    
+    // Clonar el formato usando el Número de Proyecto como nombre del nuevo archivo
+    var archivoFormato = DriveApp.getFileById(SpreadsheetApp.getActiveSpreadsheet().getId());
+    var copiaArchivo = archivoFormato.makeCopy(noProyecto, carpetaDestinoDoc);
+    
+    ui.alert('¡Éxito!', 'La cotización se guardó correctamente en:\n' + nombreCliente + ' > ' + noProyecto + ' > DOC.\n\nNombre del archivo: ' + noProyecto + '\n\nEnlace al archivo: ' + copiaArchivo.getUrl(), ui.ButtonSet.OK);
+    
+  } catch(e) {
+    ui.alert('Error en el proceso', e.toString(), ui.ButtonSet.OK);
+  }
+}
